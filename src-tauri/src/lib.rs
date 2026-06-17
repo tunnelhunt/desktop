@@ -60,7 +60,7 @@ fn check_system_tray_support() -> Result<bool, String> {
         ])
         .output();
 
-    if let Ok(out) = output {
+    if let Ok(ref out) = output {
         let stdout = String::from_utf8_lossy(&out.stdout);
         if stdout.contains("true") {
             return Ok(true);
@@ -78,7 +78,7 @@ fn check_system_tray_support() -> Result<bool, String> {
         ])
         .output();
 
-    if let Ok(out) = output2 {
+    if let Ok(ref out) = output2 {
         let stdout = String::from_utf8_lossy(&out.stdout);
         if stdout.contains("boolean true") {
             return Ok(true);
