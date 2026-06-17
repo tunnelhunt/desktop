@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tunnelhunt</title>
+    <!-- Google Fonts: Inter for clean, modern look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="/main.js" defer></script>
+  </head>
+
+  <body>
+    <!-- Main Screen -->
+    <div id="main-screen" class="screen">
+      <!-- Header -->
+      <header class="status-header">
+        <div class="status-indicator-container">
+          <span id="global-status-dot" class="status-dot inactive"></span>
+          <span id="global-status-text" class="status-text">Туннели выключены</span>
+        </div>
+        <div id="active-badge" class="badge hidden">0</div>
+      </header>
+
+      <hr class="divider" />
+
+      <!-- Presets Section -->
+      <section class="presets-section">
+        <div class="section-header">
+          <h2 class="section-title">Пресеты</h2>
+          <button id="add-preset-btn" class="icon-btn" title="Добавить новый пресет">
+            <!-- SVG Plus Icon -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div id="presets-list-container" class="presets-scroll-view">
+          <!-- Dynamically populated presets -->
+          <div class="empty-state">
+            Пресеты не настроены. Нажмите +, чтобы добавить.
+          </div>
+        </div>
+      </section>
+
+      <hr class="divider" />
+
+      <!-- Footer -->
+      <footer class="footer-section">
+        <button id="stop-all-btn" class="btn btn-secondary" disabled>Остановить все</button>
+        <button id="quit-btn" class="btn btn-danger">Выйти</button>
+      </footer>
+    </div>
+
+    <!-- Add Preset Screen -->
+    <div id="add-screen" class="screen hidden">
+      <header class="nav-header">
+        <button id="add-back-btn" class="back-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Назад
+        </button>
+        <h2 class="nav-title">Новый пресет</h2>
+        <div style="width: 50px;"></div> <!-- Spacer -->
+      </header>
+
+      <form id="add-form" class="form-container">
+        <div class="form-group">
+          <label class="form-label" for="add-name">Название пресета</label>
+          <input type="text" id="add-name" class="form-input" placeholder="например, Frontend Dev" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="add-port">Локальный порт</label>
+          <input type="number" id="add-port" class="form-input" placeholder="например, 8080" min="1" max="65535" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Приватный SSH-ключ</label>
+          <div class="file-picker-group">
+            <input type="text" id="add-key-path" class="form-input" placeholder="Использовать ключ по умолчанию" readonly />
+            <button type="button" id="add-browse-btn" class="btn btn-secondary btn-sm">Обзор...</button>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" id="add-submit-btn" class="btn btn-primary" disabled>Добавить</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Edit Preset Screen -->
+    <div id="edit-screen" class="screen hidden">
+      <header class="nav-header">
+        <button id="edit-back-btn" class="back-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Назад
+        </button>
+        <h2 class="nav-title">Изменить</h2>
+        <div style="width: 50px;"></div> <!-- Spacer -->
+      </header>
+
+      <form id="edit-form" class="form-container">
+        <input type="hidden" id="edit-preset-id" />
+        
+        <div class="form-group">
+          <label class="form-label" for="edit-name">Название пресета</label>
+          <input type="text" id="edit-name" class="form-input" placeholder="например, Frontend Dev" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="edit-port">Локальный порт</label>
+          <input type="number" id="edit-port" class="form-input" placeholder="например, 8080" min="1" max="65535" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Приватный SSH-ключ</label>
+          <div class="file-picker-group">
+            <input type="text" id="edit-key-path" class="form-input" placeholder="Использовать ключ по умолчанию" readonly />
+            <button type="button" id="edit-browse-btn" class="btn btn-secondary btn-sm">Обзор...</button>
+          </div>
+        </div>
+
+        <div class="form-actions edit-actions">
+          <button type="button" id="edit-delete-btn" class="btn btn-danger-text">Удалить</button>
+          <button type="submit" id="edit-submit-btn" class="btn btn-primary">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </body>
+</html>
