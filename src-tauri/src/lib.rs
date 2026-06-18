@@ -515,11 +515,14 @@ fn open_url(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    println!("Starting Tunnelhunt Desktop Client...");
     // Check tray support first on Linux
     #[cfg(target_os = "linux")]
     {
+        println!("Checking system tray support...");
         match check_system_tray_support() {
             Ok(false) => {
+                eprintln!("Error: System tray is not supported or active (StatusNotifierWatcher not found).");
                 rfd::MessageDialog::new()
                     .set_title("Ошибка: Системный трей не поддерживается")
                     .set_description(
@@ -533,9 +536,11 @@ pub fn run() {
                 std::process::exit(1);
             }
             Err(e) => {
-                eprintln!("Ошибка проверки трея: {}", e);
+                eprintln!("Error checking system tray: {}", e);
             }
-            _ => {}
+            _ => {
+                println!("System tray support verified successfully.");
+            }
         }
     }
 
@@ -587,9 +592,22 @@ pub fn run() {
             let tray_icon = tauri::image::Image::from_bytes(include_bytes!("../icons/64x64.png")).unwrap();
 
             let last_blur_tray = last_blur.clone();
-            let _tray = TrayIconBuilder::with_id("main-tray")
+            #[allow(unused_mut)]
+            let mut tray_builder = TrayIconBuilder::with_id("main-tray")
                 .icon(tray_icon)
-                .tooltip("Tunnelhunt")
+                .tooltip("Tunnelhunt");
+
+            #[cfg(target_os = "linux")]
+            {
+                if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
+                    let appindicator_dir = std::path::PathBuf::from(runtime_dir).join("appindicator");
+                    if appindicator_dir.exists() {
+                        tray_builder = tray_builder.temp_dir_path(appindicator_dir);
+                    }
+                }
+            }
+
+            let _tray = tray_builder
                 .on_tray_icon_event(move |tray, event| {
                     // Update positioner with tray details
                     tauri_plugin_positioner::on_tray_event(tray.app_handle(), &event);

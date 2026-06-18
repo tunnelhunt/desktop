@@ -34,6 +34,36 @@ jobs:
         with:
           node-version: 20
 
+      - name: Update version from Git tag
+        run: |
+          node -e "
+          const fs = require('fs');
+          const tag = process.env.GITHUB_REF_NAME;
+          if (tag && /^v?\d+/.test(tag)) {
+            const version = tag.startsWith('v') ? tag.substring(1) : tag;
+            if (fs.existsSync('package.json')) {
+              const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+              pkg.version = version;
+              fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+              console.log('Updated package.json version to:', version);
+            }
+            if (fs.existsSync('src-tauri/tauri.conf.json')) {
+              const conf = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+              conf.version = version;
+              fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(conf, null, 2) + '\n', 'utf8');
+              console.log('Updated tauri.conf.json version to:', version);
+            }
+            if (fs.existsSync('src-tauri/Cargo.toml')) {
+              let cargo = fs.readFileSync('src-tauri/Cargo.toml', 'utf8');
+              cargo = cargo.replace(/^version\s*=\s*\".*\"/m, 'version = \"' + version + '\"');
+              fs.writeFileSync('src-tauri/Cargo.toml', cargo, 'utf8');
+              console.log('Updated Cargo.toml version to:', version);
+            }
+          } else {
+            console.log('No version tag found (ref: ' + tag + '). Skipping version update.');
+          }
+          "
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
@@ -61,6 +91,6 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'Tunnelhunt Desktop v__VERSION__'
           releaseBody: 'Tunnelhunt Desktop Client Release (Linux, macOS, Windows)'
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
