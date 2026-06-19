@@ -251,6 +251,7 @@ async fn monitor_tunnel(
 
         let mut last_error_msg: Option<String> = None;
         let mut limit_reached = false;
+        let mut dashboard_closed = false;
         let mut is_connected = false;
 
         let mut stdout_line = String::new();
@@ -276,6 +277,9 @@ async fn monitor_tunnel(
                             }
                             if stdout_line.contains("[Limit]") || stdout_line.contains("lifetime limit reached") {
                                 limit_reached = true;
+                            }
+                            if stdout_line.contains("[Closed]") || stdout_line.contains("Tunnel closed from dashboard") {
+                                dashboard_closed = true;
                             }
                             if let Some(url) = extract_url(&stdout_line) {
                                 is_connected = true;
@@ -319,6 +323,12 @@ async fn monitor_tunnel(
 
         if limit_reached {
             let msg = "Отключено по таймауту для бесплатных тарифов".to_string();
+            update_tunnel_state(&preset_id, TunnelState::Error(msg), &state_mutex, &app_handle);
+            break;
+        }
+
+        if dashboard_closed {
+            let msg = "Туннель отключен через дашборд".to_string();
             update_tunnel_state(&preset_id, TunnelState::Error(msg), &state_mutex, &app_handle);
             break;
         }
