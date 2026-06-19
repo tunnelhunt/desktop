@@ -40,61 +40,6 @@ pub struct AppState {
     pub tunnels: Arc<Mutex<HashMap<String, TunnelProcess>>>,
 }
 
-// Check if a system tray watcher is active on Linux (D-Bus check)
-#[cfg(target_os = "linux")]
-fn check_system_tray_support() -> Result<bool, String> {
-    use std::process::Command;
-
-    // Check using gdbus (standard on GNOME/Ubuntu)
-    let output = Command::new("gdbus")
-        .args(&[
-            "call",
-            "--session",
-            "--dest",
-            "org.freedesktop.DBus",
-            "--object-path",
-            "/org/freedesktop/DBus",
-            "--method",
-            "org.freedesktop.DBus.NameHasOwner",
-            "org.kde.StatusNotifierWatcher",
-        ])
-        .output();
-
-    if let Ok(ref out) = output {
-        let stdout = String::from_utf8_lossy(&out.stdout);
-        if stdout.contains("true") {
-            return Ok(true);
-        }
-    }
-
-    // Fallback to dbus-send
-    let output2 = Command::new("dbus-send")
-        .args(&[
-            "--print-reply",
-            "--dest=org.freedesktop.DBus",
-            "/org/freedesktop/DBus",
-            "org.freedesktop.DBus.NameHasOwner",
-            "string:org.kde.StatusNotifierWatcher",
-        ])
-        .output();
-
-    if let Ok(ref out) = output2 {
-        let stdout = String::from_utf8_lossy(&out.stdout);
-        if stdout.contains("boolean true") {
-            return Ok(true);
-        }
-    }
-
-    // Defensive check: if both dbus commands failed because they were not found,
-    // we return true to avoid false-negatives on minimal window managers (like i3/sway)
-    let gdbus_missing = output.is_err();
-    let dbus_send_missing = output2.is_err();
-    if gdbus_missing && dbus_send_missing {
-        return Ok(true);
-    }
-
-    Ok(false)
-}
 
 
 // Get system specific home directory
@@ -526,33 +471,6 @@ fn open_url(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     println!("Starting Tunnelhunt Desktop Client...");
-    // Check tray support first on Linux
-    #[cfg(target_os = "linux")]
-    {
-        println!("Checking system tray support...");
-        match check_system_tray_support() {
-            Ok(false) => {
-                eprintln!("Error: System tray is not supported or active (StatusNotifierWatcher not found).");
-                rfd::MessageDialog::new()
-                    .set_title("Ошибка: Системный трей не поддерживается")
-                    .set_description(
-                        "Системный трей не запущен в вашем окружении.\n\n\
-                        Если вы используете GNOME, пожалуйста, установите расширение 'AppIndicator and KStatusNotifierItem Support'.\n\n\
-                        Инструкция по установке: https://github.com/ubuntu/gnome-shell-extension-appindicator"
-                    )
-                    .set_buttons(rfd::MessageButtons::Ok)
-                    .set_level(rfd::MessageLevel::Error)
-                    .show();
-                std::process::exit(1);
-            }
-            Err(e) => {
-                eprintln!("Error checking system tray: {}", e);
-            }
-            _ => {
-                println!("System tray support verified successfully.");
-            }
-        }
-    }
 
     let app_state = AppState {
         tunnels: Arc::new(Mutex::new(HashMap::new())),
@@ -617,7 +535,7 @@ pub fn run() {
                 }
             }
 
-            let _tray = tray_builder
+            let tray_result = tray_builder
                 .on_tray_icon_event(move |tray, event| {
                     // Update positioner with tray details
                     tauri_plugin_positioner::on_tray_event(tray.app_handle(), &event);
@@ -656,7 +574,22 @@ pub fn run() {
                         }
                     }
                 })
-                .build(app)?;
+                .build(app);
+
+            match tray_result {
+                Ok(_tray) => {
+                    println!("System tray initialized successfully.");
+                }
+                Err(e) => {
+                    eprintln!("Warning: System tray failed to initialize: {}. Running in window mode.", e);
+                    // Make window visible and accessible via taskbar since there's no tray icon
+                    let _ = window.set_skip_taskbar(false);
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                    // Notify frontend so it can adapt its UI (e.g. show close button)
+                    let _ = app.emit("tray-fallback-mode", true);
+                }
+            }
 
             Ok(())
         })
