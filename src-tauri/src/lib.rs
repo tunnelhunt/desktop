@@ -527,7 +527,10 @@ pub fn run() {
 
             #[cfg(target_os = "linux")]
             {
-                if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
+                if let Ok(cache_dir) = app.path().app_cache_dir() {
+                    let _ = std::fs::create_dir_all(&cache_dir);
+                    tray_builder = tray_builder.temp_dir_path(cache_dir);
+                } else if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
                     let appindicator_dir = std::path::PathBuf::from(runtime_dir).join("appindicator");
                     if appindicator_dir.exists() {
                         tray_builder = tray_builder.temp_dir_path(appindicator_dir);
